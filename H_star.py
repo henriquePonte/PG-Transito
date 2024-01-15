@@ -1,6 +1,5 @@
 import nodes
 import queue2
-import Graph
 
 
 def get_heuristic_value(heuristic: list, city: str) -> int:

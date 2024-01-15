@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 import random
-import tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import json
 
 
@@ -137,5 +135,3 @@ def draw_graph_teste(G, path_edges=None):
 
     plt.legend(handles=legend_elements, loc='upper left', title='Points', fontsize=8)
     plt.show()
-
-
