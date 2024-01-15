@@ -34,7 +34,6 @@ def create_and_draw_graph(json_file):
     draw_graph(G)
     return fig
 
-
 def draw_graph(G, path_edges=None):
     pos = nx.get_node_attributes(G, 'pos')
 
@@ -48,13 +47,17 @@ def draw_graph(G, path_edges=None):
     edge_colors = []
     for edge in G.edges():
         if G[edge[0]][edge[1]]['cost'] < 5:
-            edge_colors.append('green')  # Light traffic
+            edge_colors.append('green')  # Sem Tráfego
         elif G[edge[0]][edge[1]]['cost'] < 10:
-            edge_colors.append('yellow')  # Medium traffic
+            edge_colors.append('yellow')  # Tráfego Ligeiro
         elif 10 <= G[edge[0]][edge[1]]['cost'] <= 30:
-            edge_colors.append('orange')  # Moderate traffic
+            edge_colors.append('orange')  # Tráfego Medio
         else:
-            edge_colors.append('red')  # High traffic
+            edge_colors.append('red')  # Tráfego Grave
+
+    # Draw nodes with numbers
+    node_numbers = {node: str(i + 1) for i, node in enumerate(G.nodes())}
+    nx.draw_networkx_labels(G, pos, labels=node_numbers, font_color='black', font_size=8, font_weight='bold')
 
     nx.draw(G, pos, with_labels=False, node_color=colors, node_size=node_size, edge_color=edge_colors)
 
@@ -62,17 +65,20 @@ def draw_graph(G, path_edges=None):
     if path_edges:
         nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color='blue', width=2)
 
-    # Create a legend for nodes
+    # Legenda das Arrestas
     legend_elements_nodes = [Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[i], markersize=8,
-                              label=node) for i, node in enumerate(G.nodes())]
+                                     label=f'{node}: {node_numbers[node]}') for i, node in enumerate(G.nodes())]
 
-    # Create a legend for edge colors
+    # Legenda das arrestas de tráfego
     legend_elements_edges = [
-        Line2D([0], [0], color='green', label='Sem trafego'),
-        Line2D([0], [0], color='yellow', label='Trafego ligeiro'),
-        Line2D([0], [0], color='orange', label='Trafego medio'),
-        Line2D([0], [0], color='red', label='Trafego grave')
+        Line2D([0], [0], color='green', label='Sem Tráfego'),
+        Line2D([0], [0], color='yellow', label='Tráfego Ligeiro'),
+        Line2D([0], [0], color='orange', label='Tráfego Medio'),
+        Line2D([0], [0], color='red', label='Tráfego Grave')
     ]
 
-    plt.legend(handles=legend_elements_nodes + legend_elements_edges, loc='upper left', title='Points', fontsize=8)
+    # Ajusta a possição da legenda
+    plt.legend(handles=legend_elements_nodes + legend_elements_edges, bbox_to_anchor=(1.05, 1), loc='upper left',
+               title='Pontos Turisticos', fontsize=8)
+    plt.tight_layout()
     plt.show()
