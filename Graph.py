@@ -62,13 +62,17 @@ def draw_graph(G, path_edges=None):
     if path_edges:
         nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color='blue', width=2)
 
-    # Create a legend
-    legend_elements = [Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[i], markersize=8,
+    # Create a legend for nodes
+    legend_elements_nodes = [Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[i], markersize=8,
                               label=node) for i, node in enumerate(G.nodes())]
 
-    # Add custom legend for edge colors
-    legend_elements.append(Line2D([0], [0], color='w', markerfacecolor='red', markersize=8, label='High Traffic'))
-    legend_elements.append(Line2D([0], [0], color='w', markerfacecolor='orange', markersize=8, label='Medium Traffic'))
+    # Create a legend for edge colors
+    legend_elements_edges = [
+        Line2D([0], [0], color='green', label='Sem trafego'),
+        Line2D([0], [0], color='yellow', label='Trafego ligeiro'),
+        Line2D([0], [0], color='orange', label='Trafego medio'),
+        Line2D([0], [0], color='red', label='Trafego grave')
+    ]
 
-    plt.legend(handles=legend_elements, loc='upper left', title='Points', fontsize=8)
+    plt.legend(handles=legend_elements_nodes + legend_elements_edges, loc='upper left', title='Points', fontsize=8)
     plt.show()
