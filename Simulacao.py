@@ -214,7 +214,7 @@ class GraphWindow:
 
     def run(self):
         self.advance_time()
-        self.root.after(10000, self.run)
+        self.root.after(15000, self.run)
         self.root.mainloop()
 
 

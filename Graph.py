@@ -50,9 +50,9 @@ def draw_graph(G, path_edges=None):
         if G[edge[0]][edge[1]]['cost'] < 5:
             edge_colors.append('green')  # Light traffic
         elif G[edge[0]][edge[1]]['cost'] < 10:
-            edge_colors.append('orange')  # Medium traffic
+            edge_colors.append('yellow')  # Medium traffic
         elif 10 <= G[edge[0]][edge[1]]['cost'] <= 30:
-            edge_colors.append('yellow')  # Moderate traffic
+            edge_colors.append('orange')  # Moderate traffic
         else:
             edge_colors.append('red')  # High traffic
 
