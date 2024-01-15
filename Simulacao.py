@@ -54,14 +54,14 @@ class GraphWindow:
         start_button = tk.Button(self.root, text="Iniciar busca",
                                  command=self.start_search_and_draw_path)
         start_button.pack()
-        self.G = Graph.create_graph_from_json("PontosTuristicos.conf")  # Armazene o grafo como um atributo da classe
+        self.G = Graph.create_graph_from_json("PontosTuristicos.conf")
 
     def update_time(self):
         # Atualiza o rótulo da hora com a hora simulada
         self.time_label.config(text=time.strftime("%H:%M:%S", self.simulated_time))
-        self.root.after(1000, self.update_time)  # Atualiza a hora a cada 1 segundo
+        self.root.after(1000, self.update_time)
 
-    def update_costs(self):
+    def update_costs_general(self):
         # Obtém a hora atual
         current_hour = self.simulated_time.tm_hour
 
@@ -74,15 +74,61 @@ class GraphWindow:
                 self.G[conexao["destino"]][conexao["origem"]]['cost'] += 2
         else:
             for conexao in self.cities["conexoes"]:
-                conexao["cost"] = max(0, conexao["cost"] - 2)
+                conexao["cost"] = max(0, conexao["cost"] - 1)
                 # Atualiza o custo da conexão correspondente no grafo
+                self.G[conexao["origem"]][conexao["destino"]]['cost'] = max(0, self.G[conexao["origem"]][
+                    conexao["destino"]]['cost'] - 1)
+                self.G[conexao["destino"]][conexao["origem"]]['cost'] = max(0, self.G[conexao["destino"]][
+                    conexao["origem"]]['cost'] - 1)
+
+    def update_costs(self):
+        # Obtém a hora atual
+        current_hour = self.simulated_time.tm_hour
+
+        # Ajusta os custos das conexões com base na hora do dia
+        if 8 <= current_hour <= 11 or 16 <= current_hour <= 19:
+            for conexao in self.cities["conexoes"]:
+                # Aumenta o custo em 1 para todas as conexões
+                conexao["cost"] += 1
+                self.G[conexao["origem"]][conexao["destino"]]['cost'] += 1
+                self.G[conexao["destino"]][conexao["origem"]]['cost'] += 1
+
+                # Aumenta o custo adicionalmente em 2 para as conexões entre "Torre de Belém" e "Mosteiro dos Jerónimos"
+                if (conexao["origem"] == "Torre de Belém" and conexao["destino"] == "Mosteiro dos Jerónimos") or \
+                        (conexao["origem"] == "Mosteiro dos Jerónimos" and
+                         conexao["destino"] == "Pastéis de Belém") or \
+                        (conexao["origem"] == "Pastéis de Belém" and conexao["destino"] == "Avenida da Liberdade"):
+                    conexao["cost"] += 2
+                    self.G[conexao["origem"]][conexao["destino"]]['cost'] += 2
+                    self.G[conexao["destino"]][conexao["origem"]]['cost'] += 2
+                # Aumenta o custo adicionalmente em 3 para as conexões entre
+                # "Mosteiro dos Jerónimos" e "Padrão dos Descobrimentos"
+                elif (conexao["origem"] == "Mosteiro dos Jerónimos" and conexao[
+                    "destino"] == "Padrão dos Descobrimentos") or \
+                        (conexao["origem"] == "Padrão dos Descobrimentos" and conexao[
+                            "destino"] == "Praça do Comércio") or \
+                        (conexao["origem"] == "Praça do Comércio" and conexao["destino"] == "Castelo de São Jorge"):
+                    conexao["cost"] += 3
+                    self.G[conexao["origem"]][conexao["destino"]]['cost'] += 3
+                    self.G[conexao["destino"]][conexao["origem"]]['cost'] += 3
+        elif 2 <= current_hour <= 3:
+            for conexao in self.cities["conexoes"]:
+                conexao["cost"] = max(0, conexao["cost"] - 0.1)
+                # Atualiza o custo da conexão correspondente no grafo
+                self.G[conexao["origem"]][conexao["destino"]]['cost'] = max(0, self.G[conexao["origem"]][
+                    conexao["destino"]]['cost'] - 0.1)
+                self.G[conexao["destino"]][conexao["origem"]]['cost'] = max(0, self.G[conexao["destino"]][
+                    conexao["origem"]]['cost'] - 0.1)
+        else:
+            for conexao in self.cities["conexoes"]:
+                conexao["cost"] = max(0, conexao["cost"] - 2)
                 self.G[conexao["origem"]][conexao["destino"]]['cost'] = max(0, self.G[conexao["origem"]][
                     conexao["destino"]]['cost'] - 2)
                 self.G[conexao["destino"]][conexao["origem"]]['cost'] = max(0, self.G[conexao["destino"]][
                     conexao["origem"]]['cost'] - 2)
 
     def set_time(self):
-        # Define a hora simulada de acordo com a entrada do usuário
+        # Define a hora simulada conforme a entrada do utilizador
         time_string = self.time_entry.get()
         try:
             new_time = time.strptime(time_string, "%H:%M:%S")  # Verifica se a hora está no formato correto
@@ -100,7 +146,7 @@ class GraphWindow:
             # Remove o canvas antigo
             self.canvas.get_tk_widget().pack_forget()
 
-            # Cria um novo canvas e adiciona à janela Tkinter
+            # Cria um canvas e adiciona à janela Tkinter
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
             self.canvas.draw()
             self.canvas.get_tk_widget().pack()
@@ -123,27 +169,28 @@ class GraphWindow:
             for conexao in cities_copy["conexoes"]:
                 conexao["cost"] *= 2
 
+        # Use o grafo atualizado para a pesquisa
         path_edges = H_star.start_search(start_city, goal_city, cities_copy)
-        self.draw_path(path_edges)
+        self.draw_path(path_edges, self.G)
 
-    def draw_path(self, path_edges):
-        # Cria uma nova figura
+    def draw_path(self, path_edges, G):
+        # Cria uma figura
         self.fig = plt.figure()
 
-        G = Graph.create_graph_from_json("./PontosTuristicos.conf")
+        # Usa o grafo atualizado para desenhar o gráfico
         Graph.draw_graph(G, path_edges)
 
         # Remove o canvas antigo
         self.canvas.get_tk_widget().pack_forget()
 
-        # Cria um novo canvas e adiciona à janela Tkinter
+        # Cria um canvas e adiciona à janela Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack()
 
     def advance_time(self):
-        # Avança a hora simulada em 30 minutos
-        new_time = time.localtime(time.mktime(self.simulated_time) + 30 * 60)
+        # Avança a hora simulada em 60 minutos
+        new_time = time.localtime(time.mktime(self.simulated_time) + 60 * 60)
         self.simulated_time = time.struct_time(
             (new_time.tm_year, new_time.tm_mon, new_time.tm_mday,
              new_time.tm_hour, new_time.tm_min, new_time.tm_sec,
@@ -154,20 +201,20 @@ class GraphWindow:
         self.update_graph()
 
     def update_graph(self):
-        self.fig = plt.figure()  # Cria uma nova figura
+        self.fig = plt.figure()  # Cria uma figura
         Graph.draw_graph(self.G)  # Desenha o gráfico na figura
 
         # Remove o canvas antigo
         self.canvas.get_tk_widget().pack_forget()
 
-        # Cria um novo canvas e adiciona à janela Tkinter
+        # Cria um canvas e adiciona à janela Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack()
 
     def run(self):
         self.advance_time()
-        self.root.after(5000, self.run) 
+        self.root.after(10000, self.run)
         self.root.mainloop()
 
 
