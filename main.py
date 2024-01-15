@@ -1,74 +1,13 @@
 import json
+import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import H_star
 import nodes
-import queue2
-import networkx as nx
-import matplotlib.pyplot as plt
+import Graph
 
 
-def create_graph_from_json(json_file):
-    with open(json_file, 'r') as f:
-        data = json.load(f)
-    G = nx.DiGraph()
-    for connection in data['connections']:
-        G.add_edge(connection['from'], connection['to'], cost=connection['cost'])
-    return G
-
-
-def draw_graph(G):
-    pos = nx.spring_layout(G)
-    nx.draw_networkx_nodes(G, pos, node_size=700)
-    nx.draw_networkx_edges(G, pos, width=2)
-    nx.draw_networkx_labels(G, pos, font_size=20, font_family='sans-serif')
-    edge_labels = nx.get_edge_attributes(G, 'cost')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    plt.axis('off')
-    plt.show()
-
-
-def create_and_draw_graph(json_file):
-    G = create_graph_from_json(json_file)
-    draw_graph(G)
-
-
-def print_nodes(dsc: str, ns: list):
-    print(dsc, ":")
-    for n in ns:
-        n.print()
-
-
-def print_path(last: nodes.Node):
-    """
-    Print the sequence of steps (with increasing cost) from root to goal node
-    :return:
-    """
-    node = last
-    path = []
-    while (not (node is None)):
-        if node.get_parent() is None:
-            path.insert(0, [node.get_name(), node.get_total_cost(), "(root)"])
-        else:
-            path.insert(0, [node.get_name(), node.get_total_cost(), node.get_parent().get_name()])
-
-        node = node.get_parent()
-    for step in path:
-        print(step[2], "-", step[1], "->", step[0])
-
-
-def in_nodes_list(nm: str, nodes: list) -> bool:
-    names_list = []
-    for n in nodes:
-        names_list.append(n.get_name())
-    # Test
-    # print("in_nodes_list:",names_list)
-    if nm in names_list:
-        return True
-    else:
-        return False
-
-
-# Example of Search using cities
 def read_file(cities: str) -> list:
-    with open(cities) as config_file:
+    with open(cities, encoding="utf-8") as config_file:
         # Reading the configuration file
         lst = json.load(config_file)
         # Test: printing config file
@@ -76,72 +15,56 @@ def read_file(cities: str) -> list:
     return lst
 
 
-def get_heuristic_value(heuristic: list, city: str) -> int:
-    for h in heuristic:
-        if h['from'] == city:
-            return h['distance']
-    return -1
+def change_cost(cities, origem, destino, new_cost):
+    found = False
+    for conexao in cities["conexoes"]:
+        if (conexao["origem"] == origem and conexao["destino"] == destino) or \
+                (conexao["origem"] == destino and conexao["destino"] == origem):
+            conexao["cost"] = new_cost
+            found = True
+    if found:
+        return "O custo foi atualizado com sucesso."
+    else:
+        return "Conexão não encontrada."
 
 
 def main():
-    # cities = read_file("./cities.conf")
-    ### Preparar h_star ###
-    cities = read_file("./cities_heuristic.conf")
+    # Preparar h_star
+    cities = read_file("./PontosTuristicos.conf")
+    fig = Graph.create_and_draw_graph("PontosTuristicos.conf")
 
-    # root
-    root = nodes.Node("Arrifes", None, 0)
+    # Criação da janela Tkinter
+    root = tk.Tk()
 
-    frontier_nodes = queue2.Queue()
-    visited_nodes = []
-    end = False
-    solution = False
-    last_node = None
-    goal_node_name = "Candelaria"
-    # frontier_nodes.push(root)
-    frontier_nodes.add(root)
-    while end == False:
-        # Test
-        print("Size of frontiers nodes:", frontier_nodes.get_size())
-        if frontier_nodes.empty():
-            end = True
-            print("Solution not found!")
-        else:
-            node = frontier_nodes.get_sorted()
-            visited_nodes.append(node)
-            if not frontier_nodes.empty():
-                print("Node name to remove:", node.get_name())
-                frontier_nodes.remove_by_name(node)
-            # Test
-            print("Frontier after removing:")
-            frontier_nodes.print_queue("after removing")
+    # Criação do widget de entrada para a cidade inicial
+    start_label = tk.Label(root, text="Digite a cidade de início ou 'sair' para parar: ")
+    start_label.pack()
+    start_entry = tk.Entry(root)
+    start_entry.pack()
 
-            if node.get_name() == goal_node_name:
-                end = True
-                solution = True
-                last_node = node
-                print("Solution found!")
-            else:
-                ### Preparar h_star ###
-                # Get information about heuristics
-                heuristic = cities["heuristic"]
-                for cn in cities["connections"]:
-                    if node.get_name() == cn["from"]:
-                        if not in_nodes_list(cn["to"], visited_nodes):
-                            #### Preparar h_star ###
-                            value = get_heuristic_value(heuristic, cn["to"])
-                            print("Heuristic from the city ", cn["to"], " to Faro is:", value)
+    # Criação do widget de entrada para a cidade final
+    goal_label = tk.Label(root, text="Digite a cidade de fim: ")
+    goal_label.pack()
+    goal_entry = tk.Entry(root)
+    goal_entry.pack()
 
-                            new_node = nodes.Node(cn["to"], node, cn["cost"])
-                            # Test
-                            print("New node not in the frontiers and not visited!")
-                            frontier_nodes.add(new_node)
-                        # Test
-                frontier_nodes.print_queue("Queue")
-    if solution == True:
-        print("Last node:", last_node.get_name())
-        print("Root node:", root.get_name())
-        print_path(last_node)
+    # Criação do botão para iniciar a busca
+    start_button = tk.Button(root, text="Iniciar busca",
+                             command=lambda: start_search_and_draw_path(start_entry.get(), goal_entry.get(), cities))
+    start_button.pack()
+
+    # Adicionando o gráfico à janela Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    root.mainloop()
 
 
-create_and_draw_graph("cities_heuristic.conf")
+def start_search_and_draw_path(start_city, goal_city, cities):
+    path_edges = H_star.start_search(start_city, goal_city, cities)
+    G = Graph.create_graph_from_json("./PontosTuristicos.conf")
+    Graph.draw_graph_teste(G, path_edges)
+
+
 main()
